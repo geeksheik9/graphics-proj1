@@ -166,7 +166,7 @@ function render() {
     gl.clear( gl.COLOR_BUFFER_BIT );
 
 	//Points
-	gl.drawArrays(gl.POINTS, 0, 4);
+	gl.drawArrays(gl.POINTS, 0, 150);
 
 	//Lines
 	//gl.drawArrays(gl.LINES, 0, 10000)
@@ -178,25 +178,18 @@ function render() {
 }
 
 function drawRandomPoints() {
-	pointsArray.push([0.25, 0.5]);
-	pointsArray.push([0.35, 0.5]);
-	pointsArray.push([0.75, 0.25]);
-	pointsArray.push([0.65, 0.25]);
-
-	pointsArray.push([0.25, -0.5]);
-	pointsArray.push([0.35, -0.5]);
-	pointsArray.push([0.75, -0.25]);
-	pointsArray.push([0.65, -0.25]);
-
-	pointsArray.push([-0.25, -0.5]);
-	pointsArray.push([-0.35, -0.5]);
-	pointsArray.push([-0.75, -0.25]);
-	pointsArray.push([-0.65, -0.25]);
-
-	pointsArray.push([-0.25, 0.5]);
-	pointsArray.push([-0.35, 0.5]);
-	pointsArray.push([-0.75, 0.25]);
-	pointsArray.push([-0.65, 0.25]);
+	for(let i = 0; i < 100; i++){
+		var x = (Math.random() * (1.0 - -1.0) + -1.0);
+		var y = (Math.random() * (1.0 - -1.0) + -1.0);
+		pointsArray.push([x,y]);
+		colorPointsArray.push([255,0,0,1]);
+	}
+	for(let i = 0; i < 50; i++){
+		var x = Math.random();
+		var y = Math.random();
+		pointsArray.push([x,y]);
+		colorPointsArray.push([255,0,0,1]);
+	}
 
 	gl.bindBuffer(gl.ARRAY_BUFFER, pointBuffer);
 	gl.bufferSubData(gl.ARRAY_BUFFER, offset, flatten(pointsArray));
@@ -204,4 +197,11 @@ function drawRandomPoints() {
 	var vPosition = gl.getAttribLocation(program, "vPosition");
 	gl.vertexAttribPointer(vPosition, 2, gl.FLOAT, false, 0, 0);
 	gl.enableVertexAttribArray(vPosition);
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, colorPointBuffer);
+	gl.bufferSubData(gl.ARRAY_BUFFER, colorOffset, flatten(colorPointsArray));
+	var vColor = gl.getAttribLocation(program, "vColor");
+	gl.vertexAttribPointer(vColor, 4, gl.FLOAT, false, 0,0);
+	gl.enableVertexAttribArray(vColor)
+	colorOffset += 16;
 }
