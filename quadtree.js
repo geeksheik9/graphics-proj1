@@ -32,6 +32,8 @@ var tR = {x: 200, y: 200}
 var bL = {x: 0, y: 0}
 var bR = {x: 200, y: 0}
 
+//var selectedColor = [1, 1, 1, 1];
+
 var drawLine = false;
 var drawTri= false;
 var isMouseDown = false;
@@ -61,9 +63,15 @@ var QuadTree = function() {
 
 var tree = new QuadTree();
 
+var points = [
+    {x: -0.55, y: 0.65}, 
+    {x: -0.55, y: 0.55}, 
+    {x: 0.85, y: 0.85}, 
+    {x: 0.95, y: 0.85}
+]
+
 function quadTreeBuild(depth, rect){
 	console.log("starting build")
-	tree.depth = depth;
 
 	quadCreateBranch(tree.root, depth, rect);
 	console.log("tree finished")
@@ -71,26 +79,79 @@ function quadTreeBuild(depth, rect){
 
 function quadCreateBranch(node, depth, rect){
 	console.log("branch " + index);
-	index++
-	if(depth !== 1){
-		console.log(rect);
-		node.rect = rect;
-		node.children = [new QuadNode(), new QuadNode(), new QuadNode(), new QuadNode()];
-		childrenRect = rectSubdivide(rect);
-		quadCreateBranch(node.children[0], depth - 1, childrenRect[0]);
-		quadCreateBranch(node.children[1], depth - 1, childrenRect[1]);
-		quadCreateBranch(node.children[2], depth - 1, childrenRect[2]);
-		quadCreateBranch(node.children[3], depth - 1, childrenRect[3]);
-	}
+	index++;
+
+    console.log(rect.right);
+    console.log(rect.left);
+    console.log(rect.top);
+    console.log(rect.bottom);
+    for (var i = 0; i < points.length; i++) {
+        console.log(points[i]);
+    if (points[i].x < rect.right.x && points [i].x > rect.left.x) {
+        if (points[i].y < rect.top.y && points[i].y > rect.bottom.y) {
+            console.log("SUBDIVED");
+            console.log(rect);
+
+            linesArray.push([rect.top.x, rect.top.y]);
+	        linesArray.push([rect.bottom.x, rect.bottom.y]);
+
+	        linesArray.push([rect.left.x, rect.left.y]);
+	        linesArray.push([rect.right.x, rect.right.y]);
+	        colorLinesArray.push([1, 1, 1, 1]);
+
+            node.rect = rect;
+		    node.children = [new QuadNode(), new QuadNode(), new QuadNode(), new QuadNode()];
+		    childrenRect = rectSubdivide(rect);
+            console.log(childrenRect[1]);
+		    quadCreateBranch(node.children[0], depth - 1, childrenRect[0]);
+		    quadCreateBranch(node.children[1], depth - 1, childrenRect[1]);
+		    // quadCreateBranch(node.children[2], depth - 1, childrenRect[2]);
+		    // quadCreateBranch(node.children[3], depth - 1, childrenRect[3]);
+        }
+    }
+}
 }
 
 function rectSubdivide(rect){
 	console.log("subdivide")
+    //left          top          right             bottom 
+    //(rect.left + rect.right)/2, rect.top, rect.right, (rect.top + rect.bottom)/2
+    //x and y 
+    /*
+    mT = {x: (tL.x+tR.x)/2, y: (tL.y+tR.y)/2}
+	console.log("--MIDDLE TOP--")
+	console.log(mT)
+	mL = {x: (tL.x+bL.x)/2, y: (tL.y+bL.y)/2}
+	console.log("--MIDDLE LEFT--")
+	console.log(mL)
+	mR = {x: (tR.x+bR.x)/2, y: (tR.y+bR.y)/2}
+	console.log("--MIDDLE RIGHT--")
+	console.log(mR)
+	mB = {x: (bL.x+bR.x)/2, y: (bL.y+bR.y)/2}
+	console.log("--MIDDLE BOTTOM--")
+	console.log(mB)
+    mM = {x: (mL.x+mR.x)/2, y: (mT.y+mB.y)/2}
+	console.log("--MIDDLE--")
+	console.log(mM)
+    rect.left, rect.top, (rect.left + rect.right)/2, (rect.top + rect.bottom)/2
+    */
+    var mid = {x: (rect.left.x + rect.right.x)/2, y:(rect.top.y + rect.bottom.y)/2}
+    var tL = {x: rect.left.x, y: rect.top.y}
+    var tR = {x: rect.right.x, y: rect.top.y}
+    var bL = {x: rect.left.x, y: rect.bottom.y}
+    var bR = {x: rect.right.x, y: rect.bottom.y}
+
 	var firstRect = new QuadRect(
-		(rect.left + rect.right)/2, rect.top, rect.right, (rect.top + rect.bottom)/2
+        {x: mid.x, y: (rect.top.y + mid.y)/2}, 
+        {x: (rect.top.x + tR.x)/2, y: tR.y}, 
+        {x: rect.right.x, y: (rect.right.y + tR.y)/2}, 
+        {x: (rect.bottom.x + bR.x)/2, y: rect.right.y}
 	);
 	var secondRect = new QuadRect(
-		rect.left, rect.top, (rect.left + rect.right)/2, (rect.top + rect.bottom)/2
+		{x: rect.left.x, y: (rect.left.y + tL.y)/2}, 
+        {x: (rect.top.x + tL.x)/2, y: tL.y}, 
+        {x: mid.x, y: (rect.left.y + tL.y)/2}, 
+        {x: (rect.bottom.x + bL.x)/2, y: rect.left.y}
 	);
 	var thirdRect = new QuadRect(
 		rect.left, (rect.top + rect.bottom)/2, (rect.left + rect.right)/2, rect.bottom
@@ -102,7 +163,8 @@ function rectSubdivide(rect){
 	return [firstRect, secondRect, thirdRect, fourthRect]
 }
 
-var rect = new QuadRect(-1,1,1,-1);
+var rect = new QuadRect({x: -1, y: 0}, {x: 0, y: 1}, {x: 1, y: 0}, {x: 0, y: -1});
+
 
 window.onload = function init() {
 	// get the canvas handle from the document's DOM
@@ -165,7 +227,7 @@ window.onload = function init() {
 	gl.bufferData(gl.ARRAY_BUFFER, (32*60000), gl.STATIC_DRAW)
 
 	drawRandomPoints();
-	//quadTreeBuild(5, rect);
+	quadTreeBuild(10, rect);
 	render();
 };
 
@@ -187,12 +249,25 @@ function render() {
 	gl.vertexAttribPointer(vColor, 4, gl.FLOAT, false, 0,0);
 	gl.enableVertexAttribArray(vColor)
 	//Points
-	gl.drawArrays(gl.POINTS, 0, 150);
+	gl.drawArrays(gl.POINTS, 0, 4);
 
 	//Lines
-	//gl.drawArrays(gl.LINES, 0, 10000)
+	gl.bindBuffer(gl.ARRAY_BUFFER, lineBuffer)
+	gl.bufferSubData(gl.ARRAY_BUFFER, offset2, flatten(linesArray))
+	offset2 += 16
+	var vPosition = gl.getAttribLocation(program, "vPosition");
+	gl.vertexAttribPointer(vPosition, 2, gl.FLOAT, false, 0, 0);
+	gl.enableVertexAttribArray(vPosition);
+	gl.bindBuffer(gl.ARRAY_BUFFER, colorLineBuffer)
+	gl.bufferSubData(gl.ARRAY_BUFFER, colorOffset2, flatten(colorLinesArray))
+	colorOffset2 += 16
+	var vColor = gl.getAttribLocation(program, "vColor");
+	gl.vertexAttribPointer(vColor, 4, gl.FLOAT, false, 0 , 0);
+	gl.enableVertexAttribArray(vColor) 
 
+	gl.drawArrays(gl.LINES, 0, 10000)
 
+	//UserDefinedLine
 	gl.bindBuffer(gl.ARRAY_BUFFER, drawLineBuffer);
 	gl.bufferSubData(gl.ARRAY_BUFFER, 0, flatten(drawLineArray));
 	var vPosition = gl.getAttribLocation(program, "vPosition");
@@ -215,7 +290,7 @@ function render() {
 }
 
 function drawRandomPoints() {
-	for(let i = 0; i < 100; i++){
+	/*for(let i = 0; i < 100; i++){
 		var x = (Math.random() * (1.0 - -1.0) + -1.0);
 		var y = (Math.random() * (1.0 - -1.0) + -1.0);
 		pointsArray.push([x,y]);
@@ -226,7 +301,17 @@ function drawRandomPoints() {
 		var y = Math.random();
 		pointsArray.push([x,y]);
 		colorPointsArray.push([255,0,0,1]);
-	}
+	}*/
+	pointsArray.push([points[0].x, points[0].y]);
+	colorPointsArray.push([255,0,0,1]);
+	pointsArray.push([points[1].x, points[1].y]);
+	colorPointsArray.push([255,0,0,1]);
+	pointsArray.push([points[2].x, points[2].y]);
+	colorPointsArray.push([255,0,0,1]);
+	pointsArray.push([points[3].x, points[3].y]);
+	colorPointsArray.push([255,0,0,1]);
+
+	console.log(pointsArray)
 }
 
 tempx = 0;
