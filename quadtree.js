@@ -16,6 +16,12 @@ var colorLineBuffer;
 var linesArray = []; 
 var colorLinesArray = []; 
 
+//drawn line
+var drawLineBuffer;
+var drawColorBuffer;
+var drawLineArray = [];
+var colorDrawLine = [];
+
 var offset = 0;
 var colorOffset = 0;
 var offset2 = 0;
@@ -30,16 +36,10 @@ var drawLine = false;
 var drawTri= false;
 var isMouseDown = false;
 
-var lineCount = 0;
-var triCount = 0;
-var selectedColor = [1, 1, 1, 1];
-var selectedColor2 = [1, 0, 0, 1];
-
 var index = 0;
-
+var clicks = 0;
 var width = 0.0;
 var height = 0.0;
-var button = "On"
 
 var QuadRect = function(left, top, right, bottom){
 	this.left = left;
@@ -155,8 +155,17 @@ window.onload = function init() {
 	gl.bindBuffer(gl.ARRAY_BUFFER, colorLineBuffer)
 	gl.bufferData(gl.ARRAY_BUFFER, (32*60000), gl.STATIC_DRAW)
 
+	// Draw Line
+	drawLineBuffer = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, drawLineBuffer);
+	gl.bufferData(gl.ARRAY_BUFFER, (16*60000), gl.STATIC_DRAW)
+
+	drawColorBuffer = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, drawColorBuffer)
+	gl.bufferData(gl.ARRAY_BUFFER, (32*60000), gl.STATIC_DRAW)
+
 	drawRandomPoints();
-	quadTreeBuild(5, rect);
+	//quadTreeBuild(5, rect);
 	render();
 };
 
@@ -165,11 +174,39 @@ function render() {
 	// clear the display with the background color
     gl.clear( gl.COLOR_BUFFER_BIT );
 
+	
+	gl.bindBuffer(gl.ARRAY_BUFFER, pointBuffer);
+	gl.bufferSubData(gl.ARRAY_BUFFER, 0, flatten(pointsArray));
+	var vPosition = gl.getAttribLocation(program, "vPosition");
+	gl.vertexAttribPointer(vPosition, 2, gl.FLOAT, false, 0, 0);
+	gl.enableVertexAttribArray(vPosition);
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, colorPointBuffer);
+	gl.bufferSubData(gl.ARRAY_BUFFER, 0, flatten(colorPointsArray));
+	var vColor = gl.getAttribLocation(program, "vColor");
+	gl.vertexAttribPointer(vColor, 4, gl.FLOAT, false, 0,0);
+	gl.enableVertexAttribArray(vColor)
 	//Points
 	gl.drawArrays(gl.POINTS, 0, 150);
 
 	//Lines
 	//gl.drawArrays(gl.LINES, 0, 10000)
+
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, drawLineBuffer);
+	gl.bufferSubData(gl.ARRAY_BUFFER, 0, flatten(drawLineArray));
+	var vPosition = gl.getAttribLocation(program, "vPosition");
+	gl.vertexAttribPointer(vPosition, 2, gl.FLOAT, false, 0, 0);
+	gl.enableVertexAttribArray(vPosition);
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, drawColorBuffer);
+	gl.bufferSubData(gl.ARRAY_BUFFER, 0, flatten(colorDrawLine));
+	var vColor = gl.getAttribLocation(program, "vColor");
+	gl.vertexAttribPointer(vColor, 4, gl.FLOAT, false, 0,0);
+	gl.enableVertexAttribArray(vColor)
+
+	gl.drawArrays(gl.LINES, 0, 2)
+
 
 	//Time
     setTimeout(
@@ -190,18 +227,101 @@ function drawRandomPoints() {
 		pointsArray.push([x,y]);
 		colorPointsArray.push([255,0,0,1]);
 	}
+}
 
-	gl.bindBuffer(gl.ARRAY_BUFFER, pointBuffer);
-	gl.bufferSubData(gl.ARRAY_BUFFER, offset, flatten(pointsArray));
-	offset += 8;
-	var vPosition = gl.getAttribLocation(program, "vPosition");
-	gl.vertexAttribPointer(vPosition, 2, gl.FLOAT, false, 0, 0);
-	gl.enableVertexAttribArray(vPosition);
+tempx = 0;
+tempy = 0;
+function onClick(event){
+	x = event.clientX;
+	y = event.clientY;
+	clicks++;
 
-	gl.bindBuffer(gl.ARRAY_BUFFER, colorPointBuffer);
-	gl.bufferSubData(gl.ARRAY_BUFFER, colorOffset, flatten(colorPointsArray));
-	var vColor = gl.getAttribLocation(program, "vColor");
-	gl.vertexAttribPointer(vColor, 4, gl.FLOAT, false, 0,0);
-	gl.enableVertexAttribArray(vColor)
-	colorOffset += 16;
+	myVec = deviceToWorld(x,height-y,0);
+	myVec2 = worldToNDC(myVec[0], myVec[1], myVec[2]);
+	if(clicks % 2 != 0){
+		drawLineArray = [];
+		colorDrawLine = [];
+		tempx = myVec2[0]
+		tempy = myVec2[1];
+	} else if (clicks % 2 == 0 && clicks <= 2){
+		drawLineArray.push([tempx, tempy]);
+		colorDrawLine.push([1,1,1,1]);
+		drawLineArray.push([myVec2[0], myVec2[1]]);
+		colorDrawLine.push([1,1,1,1]);
+		clicks = 0;
+	}
+}
+
+function translate2D(tx,ty,tz){
+	translation = mat4(
+		1, 0, 0, tx,
+		0, 1, 0, ty,
+		0, 0, 1, tz,
+		0, 0, 0, 1)
+	return translation 
+}
+
+function scale2D(sx,sy,sz){
+	scale = mat4(
+		sx, 0, 0, 0,
+		0, sy, 0, 0,
+		0, 0, sz, 0,
+		0, 0, 0,  1,
+	)
+	return scale
+}
+
+function dotProd(v1, v2){
+
+	sum = 0.0
+	if(v1.length != v2.length){
+		throw "dotProd: vectors are not the same dimension"
+	}
+
+	for(let i = 0; i < v1.length; i++){
+		sum += v1[i] * v2[i]
+	}
+
+	return sum
+}
+
+function deviceToWorld(x, y, z) {
+	myVec = vec4(x, y, z, 1)
+	tMat = translate2D(-8,-8, 0)
+
+	x1 = dotProd(tMat[0], myVec)
+	y1 = dotProd(tMat[1], myVec)
+
+	myVec2 = vec4(x1,y1, 0, 1)
+	sMat = scale2D(1/512, 1/512, 0)
+
+	x2 = dotProd(sMat[0], myVec2)
+	y2 = dotProd(sMat[1], myVec2)
+
+	myVec3 = vec4(x2, y2, 0, 1)
+	sMat2 = scale2D(200,200, 0)
+
+	x3 = dotProd(sMat2[0], myVec3)
+	y3 = dotProd(sMat2[1], myVec3)
+
+	myVec4 = vec4(x3, y3, 0, 1)
+	tMat2 = translate2D(-100, -100, 0)
+
+	x4 = dotProd(tMat2[0], myVec4)
+	y4 = dotProd(tMat2[1], myVec4)
+
+	returnVec = vec4(x4, y4, 0, 1)
+
+	return returnVec
+}
+
+function worldToNDC(wx, wy, wz){
+	myVec = vec4(wx, wy, wz, 1)
+	sMat = scale2D(1/100, 1/100, 0)
+
+	xDot = dotProd(sMat[0], myVec)
+	yDot = dotProd(sMat[1], myVec)
+
+	returnVec = vec4(xDot, yDot, 0, 1)
+	return returnVec
 }
