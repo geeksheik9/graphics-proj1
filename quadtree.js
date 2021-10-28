@@ -33,18 +33,6 @@ var colorOffset = 0;
 var offset2 = 0;
 var colorOffset2 = 0;
 
-var tL = {x: 0, y: 200}
-var tR = {x: 200, y: 200}
-var bL = {x: 0, y: 0}
-var bR = {x: 200, y: 0}
-
-//var selectedColor = [1, 1, 1, 1];
-
-var drawLine = false;
-var drawTri= false;
-var isMouseDown = false;
-
-var index = 0;
 var clicks = 0;
 var width = 0.0;
 var height = 0.0;
@@ -69,11 +57,9 @@ var QuadTree = function() {
 
 var tree = new QuadTree();
 
-var gPoints = [
+var points = [
     {x: -0.55, y: 0.65}, 
     {x: -0.55, y: 0.55}, 
-    //{x: 0.85, y: 0.85}, 
-    //{x: 0.95, y: 0.85},
 	{x: 0.55, y: 0.85},
 	{x: 0.65, y: 0.85},
 	{x: 0.55, y: 0.90},
@@ -82,59 +68,14 @@ var gPoints = [
 	{x: 0.65, y: 0.95},
 ]
 
-function quadTreeBuild(depth, rect, points){
-	console.log("starting build")
-
-	quadCreateBranch(tree.root, depth, rect, points);
-	console.log("tree finished")
+function quadTreeBuild(depth, rect){
+	quadCreateBranch(tree.root, depth, rect);
 }
 
-function quadCreateBranch(node, depth, rect, points){
-	index++;
-
-	var mid = {x: (rect.left.x + rect.right.x)/2, y:(rect.top.y + rect.bottom.y)/2}
-
-	q1 = [];
-	q2 = [];
-	q3 = [];
-	q4 = [];
-    for (var i = 0; i < points.length; i++) {
-		// Quadrant 1
-		if(points[i].x > (rect.left.x + rect.right.x)/2 && points[i].x < rect.right.x){
-			if(points[i].y > (rect.top.y + rect.bottom.y)/2 && points[i].y < rect.top.y){
-				q1.push(points[i]);
-			}
-		}
-
-		// Quadrant 2
-		if(points[i].x < (rect.left.x + rect.right.x)/2 && points[i].x > rect.left.x){
-			if(points[i].y > (rect.top.y + rect.bottom.y)/2 && points[i].y < rect.top.y){
-				q2.push(points[i]);
-			}
-		}
-
-		// Quadrant 3
-		if(points[i].x < (rect.left.x + rect.right.x)/2 && points[i].x > rect.left.x){
-			if(points[i].y < (rect.top.y + rect.bottom.y)/2 && points[i].y > rect.bottom.y){
-				q3.push(points[i]);
-			}
-		}
-
-		// Quadrant 4
-		if(points[i].x < (rect.left.x + rect.right.x)/2 && points[i].x < rect.right.x){
-			if(points[i].y < (rect.top.y + rect.bottom.y)/2 && points[i].y > rect.bottom.y){
-				q4.push(points[i]);
-			}
-		}
-	}
-
+function quadCreateBranch(node, depth, rect){
 	for (var i = 0; i < points.length; i++) {
     if (points[i].x < rect.right.x && points[i].x > rect.left.x) {
         if (points[i].y < rect.top.y && points[i].y > rect.bottom.y) {
-
-            console.log("Rect:");
-			console.log(rect)
-
             linesArray.push([rect.top.x, rect.top.y]);
 	        linesArray.push([rect.bottom.x, rect.bottom.y]);
 
@@ -145,42 +86,16 @@ function quadCreateBranch(node, depth, rect, points){
             node.rect = rect;
 		    node.children = [new QuadNode(), new QuadNode(), new QuadNode(), new QuadNode()];
 		    childrenRect = rectSubdivide(rect);
-            //console.log("Child"+childrenRect[1]);
-		    quadCreateBranch(node.children[0], depth - 1, childrenRect[0], q1);
-			console.log("line 107")
-		    quadCreateBranch(node.children[1], depth - 1, childrenRect[1], q2);
-			console.log("line 109")
-		    //quadCreateBranch(node.children[2], depth - 1, childrenRect[2]);
-		    //quadCreateBranch(node.children[3], depth - 1, childrenRect[3]);
+		    quadCreateBranch(node.children[0], depth - 1, childrenRect[0]);
+		    quadCreateBranch(node.children[1], depth - 1, childrenRect[1]);
+		    quadCreateBranch(node.children[2], depth - 1, childrenRect[2]);
+			quadCreateBranch(node.children[3], depth - 1, childrenRect[3]);
        		}
     	}
 	}
-//console.log("function end")
 }
 
 function rectSubdivide(rect){
-	//console.log("subdivide")
-    //left          top          right             bottom 
-    //(rect.left + rect.right)/2, rect.top, rect.right, (rect.top + rect.bottom)/2
-    //x and y 
-    /*
-    mT = {x: (tL.x+tR.x)/2, y: (tL.y+tR.y)/2}
-	console.log("--MIDDLE TOP--")
-	console.log(mT)
-	mL = {x: (tL.x+bL.x)/2, y: (tL.y+bL.y)/2}
-	console.log("--MIDDLE LEFT--")
-	console.log(mL)
-	mR = {x: (tR.x+bR.x)/2, y: (tR.y+bR.y)/2}
-	console.log("--MIDDLE RIGHT--")
-	console.log(mR)
-	mB = {x: (bL.x+bR.x)/2, y: (bL.y+bR.y)/2}
-	console.log("--MIDDLE BOTTOM--")
-	console.log(mB)
-    mM = {x: (mL.x+mR.x)/2, y: (mT.y+mB.y)/2}
-	console.log("--MIDDLE--")
-	console.log(mM)
-    rect.left, rect.top, (rect.left + rect.right)/2, (rect.top + rect.bottom)/2
-    */
     var mid = {x: (rect.left.x + rect.right.x)/2, y:(rect.top.y + rect.bottom.y)/2}
     var tL = {x: rect.left.x, y: rect.top.y}
     var tR = {x: rect.right.x, y: rect.top.y}
@@ -205,7 +120,6 @@ function rectSubdivide(rect){
 	var fourthRect = new QuadRect(
 		(rect.left + rect.right)/2, (rect.top + rect.bottom)/2, rect.right, rect.bottom
 	);
-	console.log("finished subdivides")
 	return [firstRect, secondRect, thirdRect, fourthRect]
 }
 
@@ -281,7 +195,7 @@ window.onload = function init() {
 	gl.bufferData(gl.ARRAY_BUFFER, (32*60000), gl.STATIC_DRAW);
 	
 	drawRandomPoints();
-	quadTreeBuild(10, rect, gPoints);
+	quadTreeBuild(1, rect);
 	render();
 };
 
@@ -289,7 +203,6 @@ function render() {
 	// this is render loop
 	// clear the display with the background color
     gl.clear( gl.COLOR_BUFFER_BIT );
-
 	
 	gl.bindBuffer(gl.ARRAY_BUFFER, pointBuffer);
 	gl.bufferSubData(gl.ARRAY_BUFFER, 0, flatten(pointsArray));
@@ -394,7 +307,6 @@ function onClick(event){
 		drawLineArray.push([myVec2[0], myVec2[1]]);
 		colorDrawLine.push([1,1,1,1]);
 		clicks = 0;
-		//var points = [];
 		for(let i = 0; i < linesArray.length; i+=2){
 			var point = checkIntersection(drawLineArray[0], drawLineArray[1], linesArray[i], linesArray[i+1]);
 			if(point.x !== 100 && point.y !== 100){
@@ -481,8 +393,6 @@ function worldToNDC(wx, wy, wz){
 }
 
 function checkIntersection(p1, p2, p3, p4) {
-
-	console.log(p1, p2, p3, p4)
 	var d1 = (p1[0] - p2[0]) * (p3[1] - p4[1]);
 	var d2 = (p1[1] - p2[1]) * (p3[0] - p4[0]);
 	var d = d1 - d2;
@@ -538,6 +448,7 @@ function checkIntersection(p1, p2, p3, p4) {
 	if(py == -0){
 		py = 0;
 	}
+
 	var p = { x: px, y: py };
 
 	return p;
