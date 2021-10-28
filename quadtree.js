@@ -22,6 +22,12 @@ var drawColorBuffer;
 var drawLineArray = [];
 var colorDrawLine = [];
 
+//intersection points
+var intersectionBuffer;
+var colorIntersectionBuffer;
+var intersectionPoints = [];
+var colorInterSectionPoints = [];
+
 var offset = 0;
 var colorOffset = 0;
 var offset2 = 0;
@@ -63,34 +69,71 @@ var QuadTree = function() {
 
 var tree = new QuadTree();
 
-var points = [
+var gPoints = [
     {x: -0.55, y: 0.65}, 
     {x: -0.55, y: 0.55}, 
-    {x: 0.85, y: 0.85}, 
-    {x: 0.95, y: 0.85}
+    //{x: 0.85, y: 0.85}, 
+    //{x: 0.95, y: 0.85},
+	{x: 0.55, y: 0.85},
+	{x: 0.65, y: 0.85},
+	{x: 0.55, y: 0.90},
+	{x: 0.65, y: 0.90},
+	{x: 0.55, y: 0.95},
+	{x: 0.65, y: 0.95},
 ]
 
-function quadTreeBuild(depth, rect){
+function quadTreeBuild(depth, rect, points){
 	console.log("starting build")
 
-	quadCreateBranch(tree.root, depth, rect);
+	quadCreateBranch(tree.root, depth, rect, points);
 	console.log("tree finished")
 }
 
-function quadCreateBranch(node, depth, rect){
-	console.log("branch " + index);
+function quadCreateBranch(node, depth, rect, points){
 	index++;
 
-    console.log(rect.right);
-    console.log(rect.left);
-    console.log(rect.top);
-    console.log(rect.bottom);
+	var mid = {x: (rect.left.x + rect.right.x)/2, y:(rect.top.y + rect.bottom.y)/2}
+
+	q1 = [];
+	q2 = [];
+	q3 = [];
+	q4 = [];
     for (var i = 0; i < points.length; i++) {
-        console.log(points[i]);
-    if (points[i].x < rect.right.x && points [i].x > rect.left.x) {
+		// Quadrant 1
+		if(points[i].x > (rect.left.x + rect.right.x)/2 && points[i].x < rect.right.x){
+			if(points[i].y > (rect.top.y + rect.bottom.y)/2 && points[i].y < rect.top.y){
+				q1.push(points[i]);
+			}
+		}
+
+		// Quadrant 2
+		if(points[i].x < (rect.left.x + rect.right.x)/2 && points[i].x > rect.left.x){
+			if(points[i].y > (rect.top.y + rect.bottom.y)/2 && points[i].y < rect.top.y){
+				q2.push(points[i]);
+			}
+		}
+
+		// Quadrant 3
+		if(points[i].x < (rect.left.x + rect.right.x)/2 && points[i].x > rect.left.x){
+			if(points[i].y < (rect.top.y + rect.bottom.y)/2 && points[i].y > rect.bottom.y){
+				q3.push(points[i]);
+			}
+		}
+
+		// Quadrant 4
+		if(points[i].x < (rect.left.x + rect.right.x)/2 && points[i].x < rect.right.x){
+			if(points[i].y < (rect.top.y + rect.bottom.y)/2 && points[i].y > rect.bottom.y){
+				q4.push(points[i]);
+			}
+		}
+	}
+
+	for (var i = 0; i < points.length; i++) {
+    if (points[i].x < rect.right.x && points[i].x > rect.left.x) {
         if (points[i].y < rect.top.y && points[i].y > rect.bottom.y) {
-            console.log("SUBDIVED");
-            console.log(rect);
+
+            console.log("Rect:");
+			console.log(rect)
 
             linesArray.push([rect.top.x, rect.top.y]);
 	        linesArray.push([rect.bottom.x, rect.bottom.y]);
@@ -102,18 +145,21 @@ function quadCreateBranch(node, depth, rect){
             node.rect = rect;
 		    node.children = [new QuadNode(), new QuadNode(), new QuadNode(), new QuadNode()];
 		    childrenRect = rectSubdivide(rect);
-            console.log(childrenRect[1]);
-		    quadCreateBranch(node.children[0], depth - 1, childrenRect[0]);
-		    quadCreateBranch(node.children[1], depth - 1, childrenRect[1]);
-		    // quadCreateBranch(node.children[2], depth - 1, childrenRect[2]);
-		    // quadCreateBranch(node.children[3], depth - 1, childrenRect[3]);
-        }
-    }
-}
+            //console.log("Child"+childrenRect[1]);
+		    quadCreateBranch(node.children[0], depth - 1, childrenRect[0], q1);
+			console.log("line 107")
+		    quadCreateBranch(node.children[1], depth - 1, childrenRect[1], q2);
+			console.log("line 109")
+		    //quadCreateBranch(node.children[2], depth - 1, childrenRect[2]);
+		    //quadCreateBranch(node.children[3], depth - 1, childrenRect[3]);
+       		}
+    	}
+	}
+//console.log("function end")
 }
 
 function rectSubdivide(rect){
-	console.log("subdivide")
+	//console.log("subdivide")
     //left          top          right             bottom 
     //(rect.left + rect.right)/2, rect.top, rect.right, (rect.top + rect.bottom)/2
     //x and y 
@@ -223,11 +269,19 @@ window.onload = function init() {
 	gl.bufferData(gl.ARRAY_BUFFER, (16*60000), gl.STATIC_DRAW)
 
 	drawColorBuffer = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, drawColorBuffer)
-	gl.bufferData(gl.ARRAY_BUFFER, (32*60000), gl.STATIC_DRAW)
+	gl.bindBuffer(gl.ARRAY_BUFFER, drawColorBuffer);
+	gl.bufferData(gl.ARRAY_BUFFER, (32*60000), gl.STATIC_DRAW);
 
+	intersectionBuffer = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, intersectionBuffer);
+	gl.bufferData(gl.ARRAY_BUFFER, (16*60000), gl.STATIC_DRAW);
+
+	colorIntersectionBuffer = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, colorIntersectionBuffer);
+	gl.bufferData(gl.ARRAY_BUFFER, (32*60000), gl.STATIC_DRAW);
+	
 	drawRandomPoints();
-	quadTreeBuild(10, rect);
+	quadTreeBuild(10, rect, gPoints);
 	render();
 };
 
@@ -249,7 +303,7 @@ function render() {
 	gl.vertexAttribPointer(vColor, 4, gl.FLOAT, false, 0,0);
 	gl.enableVertexAttribArray(vColor)
 	//Points
-	gl.drawArrays(gl.POINTS, 0, 4);
+	gl.drawArrays(gl.POINTS, 0, 10000);
 
 	//Lines
 	gl.bindBuffer(gl.ARRAY_BUFFER, lineBuffer)
@@ -280,8 +334,22 @@ function render() {
 	gl.vertexAttribPointer(vColor, 4, gl.FLOAT, false, 0,0);
 	gl.enableVertexAttribArray(vColor)
 
-	gl.drawArrays(gl.LINES, 0, 2)
+	gl.drawArrays(gl.LINES, 0, drawLineArray.length)
 
+	//Intersection points
+	gl.bindBuffer(gl.ARRAY_BUFFER, intersectionBuffer);
+	gl.bufferSubData(gl.ARRAY_BUFFER, 0, flatten(intersectionPoints));
+	var vPosition = gl.getAttribLocation(program, "vPosition");
+	gl.vertexAttribPointer(vPosition, 2, gl.FLOAT, false, 0, 0);
+	gl.enableVertexAttribArray(vPosition);
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, colorIntersectionBuffer);
+	gl.bufferSubData(gl.ARRAY_BUFFER, 0, flatten(colorInterSectionPoints));
+	var vColor = gl.getAttribLocation(program, "vColor");
+	gl.vertexAttribPointer(vColor, 4, gl.FLOAT, false, 0,0);
+	gl.enableVertexAttribArray(vColor)
+
+	gl.drawArrays(gl.POINTS, 0, intersectionPoints.length);
 
 	//Time
     setTimeout(
@@ -290,7 +358,7 @@ function render() {
 }
 
 function drawRandomPoints() {
-	/*for(let i = 0; i < 100; i++){
+	for(let i = 0; i < 100; i++){
 		var x = (Math.random() * (1.0 - -1.0) + -1.0);
 		var y = (Math.random() * (1.0 - -1.0) + -1.0);
 		pointsArray.push([x,y]);
@@ -301,17 +369,7 @@ function drawRandomPoints() {
 		var y = Math.random();
 		pointsArray.push([x,y]);
 		colorPointsArray.push([255,0,0,1]);
-	}*/
-	pointsArray.push([points[0].x, points[0].y]);
-	colorPointsArray.push([255,0,0,1]);
-	pointsArray.push([points[1].x, points[1].y]);
-	colorPointsArray.push([255,0,0,1]);
-	pointsArray.push([points[2].x, points[2].y]);
-	colorPointsArray.push([255,0,0,1]);
-	pointsArray.push([points[3].x, points[3].y]);
-	colorPointsArray.push([255,0,0,1]);
-
-	console.log(pointsArray)
+	}
 }
 
 tempx = 0;
@@ -319,6 +377,8 @@ tempy = 0;
 function onClick(event){
 	x = event.clientX;
 	y = event.clientY;
+
+	intersectionPoints = [];
 	clicks++;
 
 	myVec = deviceToWorld(x,height-y,0);
@@ -334,6 +394,15 @@ function onClick(event){
 		drawLineArray.push([myVec2[0], myVec2[1]]);
 		colorDrawLine.push([1,1,1,1]);
 		clicks = 0;
+		//var points = [];
+		for(let i = 0; i < linesArray.length; i+=2){
+			var point = checkIntersection(drawLineArray[0], drawLineArray[1], linesArray[i], linesArray[i+1]);
+			if(point.x !== 100 && point.y !== 100){
+				intersectionPoints.push([point.x, point.y]);
+				colorInterSectionPoints.push([0,0,1,1]);
+			}
+		}
+
 	}
 }
 
@@ -409,4 +478,73 @@ function worldToNDC(wx, wy, wz){
 
 	returnVec = vec4(xDot, yDot, 0, 1)
 	return returnVec
+}
+
+function checkIntersection(p1, p2, p3, p4) {
+
+	console.log(p1, p2, p3, p4)
+	var d1 = (p1[0] - p2[0]) * (p3[1] - p4[1]);
+	var d2 = (p1[1] - p2[1]) * (p3[0] - p4[0]);
+	var d = d1 - d2;
+
+	var u1 = (p1[0] * p2[1] - p1[1] * p2[0]);
+	var u4 = (p3[0] * p4[1] - p3[1] * p4[0]);
+
+	var u2x = p3[0] - p4[0];
+	var u3x = p1[0] - p2[0];
+
+	var u2y = p3[1] - p4[1];
+  	var u3y = p1[1] - p2[1];
+	
+	var px = (u1 * u2x - u3x * u4) / d;
+	var py = (u1 * u2y - u3y * u4) / d;
+	
+	if(p1[0] > p2[0]){
+		if(!px.between(p1[0], p2[0])){
+			px = 100;
+		}
+	}	
+	if(p1[0] < p2[0]){
+		if(!px.between(p2[0], p1[0])){
+			px = 100;
+		}
+	}
+
+	if(p1[1] > p2[1]){
+		if(!py.between(p1[1], p2[1])){
+			py = 100
+		}
+	}
+
+	if(p1[1] < p2[1]){
+		if(!py.between(p2[1], p1[1])){
+			py = 100
+		}
+	}
+
+	if(px < p3[0]){
+		px = 100;
+		py = 100;
+	}
+
+	if(py < p4[1]){
+		px = 100;
+		py = 100;
+	}
+
+	if(px == -0) {
+		px = 0
+	}
+	if(py == -0){
+		py = 0;
+	}
+	var p = { x: px, y: py };
+
+	return p;
+}
+
+Number.prototype.between = function(a,b){
+	var min = Math.min.apply(Math, [a,b]),
+	max = Math.max.apply(Math, [a,b]);
+	return this > min && this < max;
 }
